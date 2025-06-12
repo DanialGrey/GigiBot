@@ -1,17 +1,20 @@
 import discord
 from discord.ext import commands
-import json
 import os
+from dotenv import load_dotenv
 
-# Load config
-with open("config.json") as f:
-    config = json.load(f)
+
+load_dotenv()
+
+
+TOKEN = os.getenv("DISCORD_TOKEN")
+PREFIX = os.getenv("PREFIX", "!")
 
 
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix=config["prefix"], intents=intents)
+bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 
 # Load all cogs from the cogs folder
@@ -28,4 +31,4 @@ async def on_ready():
 async def ping(ctx):
     await ctx.send("🏓 Pong! GigiBot reporting for dad duty.")
 
-bot.run(config["token"])
+bot.run(TOKEN)
