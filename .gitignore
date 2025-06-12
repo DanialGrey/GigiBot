@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# VS Code or PyCharm
+.vscode/
+.idea/
+
+# Secrets
+config.json
+.env
