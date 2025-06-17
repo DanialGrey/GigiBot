@@ -11,6 +11,8 @@ class Utilities(commands.Cog):
         self.banned_users = {}
         self.check_timeouts.start()
 
+    print("[Utilities] Cog loaded.")
+
     @tasks.loop(minutes=1)
     async def check_timeouts(self):
         now = datetime.utcnow()
@@ -182,5 +184,5 @@ class Utilities(commands.Cog):
             await ctx.send("🚫 You don't have permission to do that.")
 
 
-def setup(bot):
-    bot.add_cog(Utilities(bot))
+async def setup(bot):
+   await bot.add_cog(Utilities(bot))

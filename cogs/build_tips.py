@@ -74,9 +74,18 @@ class BuildTips(commands.Cog):
             ]
         }
 
+    print("[BuildTips] Cog loaded.")
+
     @commands.command(name="buildtip")
     async def build_tip(self, ctx, theme: str = None):
         """Get a random building or motivational tip. Optionally specify a theme: automation, base_building, storage, aesthetics, motivation"""
+        try:
+            await ctx.message.delete()
+        except discord.Forbidden:
+            print("⚠️ Missing permission to delete messages.")
+        except Exception as e:
+            print(f"⚠️ Failed to delete command message: {e}")
+
         if theme and theme.lower() in self.tips:
             tip = random.choice(self.tips[theme.lower()])
             await ctx.send(f"💡 **{theme.title()} Tip:** {tip}")
@@ -84,6 +93,8 @@ class BuildTips(commands.Cog):
             theme = random.choice(list(self.tips.keys()))
             tip = random.choice(self.tips[theme])
             await ctx.send(f"💡 **{theme.title()} Tip:** {tip}")
+            # ✅ Delete the original command message
+
 
 async def setup(bot):
     await bot.add_cog(BuildTips(bot))

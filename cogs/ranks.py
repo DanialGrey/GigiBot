@@ -35,6 +35,7 @@ class RankCog(commands.Cog):
         self.bot = bot
         self.xp_cooldown = {}  # Tracks last XP gain timestamp per user per guild
         self.level_up_channel_name = LEVEL_UP_CHANNEL
+        print("[Ranks] Cog loaded.")
 
         # Ensure data directory exists
         os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
@@ -122,6 +123,14 @@ class RankCog(commands.Cog):
     async def rank(self, ctx, member: discord.Member = None):
         """Shows the rank and XP of a user."""
 
+        # ✅ Delete the original command message
+        try:
+            await ctx.message.delete()
+        except discord.Forbidden:
+            print("⚠️ Missing permission to delete messages.")
+        except Exception as e:
+            print(f"⚠️ Failed to delete command message: {e}")
+
         if not member:
             member = ctx.author
 
@@ -155,6 +164,14 @@ class RankCog(commands.Cog):
     @commands.command(name="leaderboard")
     async def leaderboard(self, ctx):
         """Shows the XP leaderboard for this server."""
+
+        # ✅ Delete the original command message
+        try:
+            await ctx.message.delete()
+        except discord.Forbidden:
+            print("⚠️ Missing permission to delete messages.")
+        except Exception as e:
+            print(f"⚠️ Failed to delete command message: {e}")
 
         guild_id = str(ctx.guild.id)
         data = self.load_data()

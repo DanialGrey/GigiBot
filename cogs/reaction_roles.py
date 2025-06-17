@@ -22,6 +22,7 @@ class ReactionRoles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.reaction_roles = load_reaction_roles()
+        print("[ReactionRoles] Cog loaded.")
 
     def is_mod_or_apex():
         async def predicate(ctx):
@@ -30,74 +31,81 @@ class ReactionRoles(commands.Cog):
 
         return commands.check(predicate)
 
+    @commands.command(name="testping")
+    async def testping(self, ctx):
+        print("[ReactionRoles] testping command triggered.")
+        await ctx.send("Pong!")
+
     @commands.command(name="reactionrole")
     @is_mod_or_apex()
-    async def reactionrole(self, ctx, channel: discord.TextChannel, *, emoji_role_pairs: str):
-        """
-        Usage:
-        !reactionrole #channel emoji1 role1 emoji2 role2 ...
-        Special command name 'game roles' anywhere in the string enables multi-select.
-        """
-        # Parse args: split emoji_role_pairs into tokens
-        tokens = emoji_role_pairs.split()
-        if len(tokens) % 2 != 0:
-            await ctx.send("You must provide pairs of emoji and role names.")
+    async def reactionrole(self, ctx, *, emoji_role_pairs: str):
+        # ✅ Only allow usage in a specific channel
+        allowed_channel_name = "get_roles"
+        if ctx.channel.name != allowed_channel_name:
+            await ctx.send(f"⚠️ This command can only be used in #{allowed_channel_name}.", delete_after=5)
             return
 
-        # Detect if multi-select (e.g. "game roles" keyword)
+        # ✅ Delete the original command message
+        try:
+            await ctx.message.delete()
+        except discord.Forbidden:
+            print("⚠️ Missing permission to delete messages.")
+        except Exception as e:
+            print(f"⚠️ Failed to delete command message: {e}")
+
+        print("[ReactionRoles] Command invoked.")
+        tokens = emoji_role_pairs.split()
+        if len(tokens) % 2 != 0:
+            await ctx.send("❌ You must provide pairs of emoji and role names.", delete_after=10)
+            return
+
         multi_select = "game roles" in emoji_role_pairs.lower()
 
-        # Remove the 'game roles' text if present, so it doesn't mess role parsing
+        # Clean out "game roles"
         cleaned_tokens = []
         skip_next = False
         for i, token in enumerate(tokens):
             if skip_next:
                 skip_next = False
                 continue
-            # Skip "game" and "roles" tokens
             if token.lower() == "game" and i + 1 < len(tokens) and tokens[i + 1].lower() == "roles":
                 skip_next = True
                 continue
             cleaned_tokens.append(token)
 
         tokens = cleaned_tokens
-
         emoji_role_map = {}
         for i in range(0, len(tokens), 2):
             emoji = tokens[i]
             role_name = tokens[i + 1]
             role = discord.utils.get(ctx.guild.roles, name=role_name)
             if role is None:
-                await ctx.send(f"Role '{role_name}' not found on this server.")
+                await ctx.send(f"❌ Role '{role_name}' not found.", delete_after=10)
                 return
             emoji_role_map[emoji] = role.id
 
-        # Send message to channel
-        description_lines = []
-        for emoji, role_id in emoji_role_map.items():
-            role = ctx.guild.get_role(role_id)
-            description_lines.append(f"{emoji} : {role.name}")
+        # 📩 Send message in the same channel the command was run
+        description_lines = [f"{emoji} : {ctx.guild.get_role(role_id).name}" for emoji, role_id in
+                             emoji_role_map.items()]
         description = "\n".join(description_lines)
 
-        message = await channel.send(
+        message = await ctx.send(
             f"React to get roles! {'(Multiple roles allowed)' if multi_select else '(Only one role at a time)'}\n\n{description}"
         )
 
-        # Add reactions
         for emoji in emoji_role_map.keys():
             try:
                 await message.add_reaction(emoji)
             except Exception as e:
-                await ctx.send(f"Failed to add reaction {emoji}: {e}")
+                print(f"⚠️ Failed to add reaction {emoji}: {e}")
 
-        # Save to json
         self.reaction_roles[str(message.id)] = {
             "emoji_role_map": emoji_role_map,
             "multi_select": multi_select
         }
         save_reaction_roles(self.reaction_roles)
 
-        await ctx.send(f"Reaction role message created in {channel.mention}!")
+        print("[ReactionRoles] Reaction role message posted.")
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):

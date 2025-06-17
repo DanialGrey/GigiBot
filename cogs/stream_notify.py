@@ -23,6 +23,8 @@ class StreamNotify(commands.Cog):
         self.twitch_streaming = False
         self.check_streams.start()
 
+    print("[StreamNotify] Cog loaded.")
+
     def cog_unload(self):
         self.check_streams.cancel()
 
@@ -30,7 +32,8 @@ class StreamNotify(commands.Cog):
     async def check_streams(self):
         await self.bot.wait_until_ready()
 
-        announce_channel = discord.utils.get(self.bot.get_all_channels(), name=ANNOUNCE_CHANNEL_NAME)
+        announce_channel_name = self.bot.config.get("ANNOUNCEMENT_CHANNEL", "announcements")
+        announce_channel = discord.utils.get(self.bot.get_all_channels(), name=announce_channel_name)
         if not announce_channel:
             logging.warning("Announcement channel not found.")
             return
@@ -95,5 +98,5 @@ class StreamNotify(commands.Cog):
                         return video["id"].get("videoId")
                 return None
 
-def setup(bot):
-    bot.add_cog(StreamNotify(bot))
+async def setup(bot):
+    await bot.add_cog(StreamNotify(bot))

@@ -6,9 +6,21 @@ class DadJokes(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    print("[DadJokes] Cog loaded.")
+
     @commands.command(name="dadjoke")
     async def dadjoke(self, ctx):
         """Fetches a random dad joke from the Official Joke API and shows a button for the punchline."""
+
+        # Delete the user's command message
+        try:
+            await ctx.message.delete()
+        except discord.Forbidden:
+            # Bot lacks permission to delete messages
+            pass
+        except discord.HTTPException:
+            # Deletion failed for other reasons
+            pass
 
         url = "https://official-joke-api.appspot.com/jokes/random"
 
