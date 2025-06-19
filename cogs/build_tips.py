@@ -1,80 +1,42 @@
-# cogs/build_tips.py
-
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import random
+import re
+import json
+import os
+import asyncio
+from datetime import datetime, timedelta
+import pytz
 
 class BuildTips(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.tips = {
-            "automation": [
-                "Automate early, automate often. If you're still hand-crafting, you're living in the past.",
-                "Belts, pipes, and power — the holy trinity of automation.",
-                "Redundancy in automation saves tears later. Trust dad.",
-                "Looping conveyor belts might look silly, but they’ll save your build from jamming up.",
-                "The best automation is the kind you forget exists — until it breaks.",
-                "Machines don’t sleep, and neither should your production line.",
-                "Splitters are your friends. Treat them right and they’ll feed the whole base.",
-                "Automating coal is like teaching your kid to make their own lunch. Pure freedom.",
-                "A bottleneck isn’t a problem — it’s an opportunity to over-engineer.",
-                "If it moves on its own, it’s magic. If it moves well, it’s automation.",
-            ],
-            "base_building": [
-                "Plan for more space than you think you need. You’ll use it all. Trust me.",
-                "Elevators and ramps make your base feel real — and usable.",
-                "Build your base with flow in mind. You should be able to run through it without tripping on wires.",
-                "Every dad-approved base has a viewing deck. Optional grill included.",
-                "Use the terrain — don’t fight it. Natural elevation can be your blueprint.",
-                "Start small, build smart. Bigger doesn't always mean better — but it's still fun.",
-                "A ladder is just a vertical regret prevention system.",
-                "Always build with escape routes. You *will* get chased eventually.",
-                "Try building a 'command center' — somewhere to oversee your chaos like a true dad general.",
-                "Multi-level bases keep your cables tidy and your brain happier.",
-            ],
-            "storage": [
-                "If you’re scrolling to find items, you need more boxes.",
-                "Label everything. Future-you will high-five past-you.",
-                "Overflow storage isn't lazy — it’s pro-level preparedness.",
-                "Storage rooms should be organized like a dad’s garage — chaotic but knowable.",
-                "Don't be afraid to go vertical with storage. Stack it like pancakes.",
-                "When in doubt, double it. Then make it symmetrical.",
-                "Storage isn’t just where you put stuff — it’s where dreams go until you need them.",
-                "If your inventory’s full, your system’s not finished.",
-                "A clean storage room is the sign of a messy adventure.",
-                "Label one chest 'junk' and watch it become the most visited spot in your base.",
-            ],
-            "aesthetics": [
-                "Symmetry brings peace. So do floor tiles that align properly.",
-                "Light your base like you're showing it off on a real estate channel.",
-                "Pathways and railings make it feel like home — and prevent falls.",
-                "Functional *and* fabulous — your builds can be both.",
-                "Glass floors: risky, stylish, and a little unhinged. Just like dad.",
-                "Add windows. If you’re going to grind for hours, you might as well have a view.",
-                "Accent lighting: because nothing says ‘power plant’ like mood lighting.",
-                "Patterned floors are the dad flannel shirts of your factory. Timeless.",
-                "A pretty base is a productive base. Science (probably).",
-                "Use railings. Falling is funny until it’s you with 200 copper ingots.",
-            ],
-            "motivation": [
-                "A scuffed base is still a base. Keep building, champ.",
-                "Rome wasn’t built in a day, and neither was your storage system.",
-                "You got this, one conveyor belt at a time.",
-                "Messy builds have character — and so do you.",
-                "Even if it’s held together with duct tape and dreams, it works. And that’s what counts.",
-                "When in doubt, take a break, grab a juice box, and come back stronger.",
-                "Every failed build is a blueprint for your next success.",
-                "Build like someone’s going to tour your base — even if it’s just your kid.",
-                "If your base makes sense to you, that’s all that matters. Mostly.",
-                "Remember: no one starts as a master builder. But every master builder started.",
-                "Your chaos is someone else’s blueprint. Share it proudly.",
-                "Your base might be messy — but it’s yours. And that’s beautiful.",
-                "A bad day building is still better than a good day grinding with no base.",
-                "Even dad didn’t build the grill station right the first time. You’re doing great.",
-            ]
+        print("[BuildTips] Cog loaded.")
+
+        self.tips = self.load_tips()
+
+        self.theme_emojis = {
+            "automation": "⚙️",
+            "base_building": "🏗️",
+            "storage": "📦",
+            "aesthetics": "🎨",
+            "motivation": "💪"
         }
 
-    print("[BuildTips] Cog loaded.")
+        self.daily_tip_channel_id = int(os.getenv("DAILY_TIP_CHANNEL_ID", 0))
+        self.daily_tip_task.start()
+
+    def normalize_theme(self, theme):
+        return re.sub(r'[^a-z]', '', theme.lower())
+
+    def load_tips(self):
+        try:
+            path = os.path.join("data", "build_tips.json")
+            with open(path, "r", encoding="utf-8") as file:
+                return json.load(file)
+        except Exception as e:
+            print(f"❌ Failed to load build tips: {e}")
+            return {}
 
     @commands.command(name="buildtip")
     async def build_tip(self, ctx, theme: str = None):
@@ -86,14 +48,48 @@ class BuildTips(commands.Cog):
         except Exception as e:
             print(f"⚠️ Failed to delete command message: {e}")
 
-        if theme and theme.lower() in self.tips:
-            tip = random.choice(self.tips[theme.lower()])
-            await ctx.send(f"💡 **{theme.title()} Tip:** {tip}")
-        else:
-            theme = random.choice(list(self.tips.keys()))
-            tip = random.choice(self.tips[theme])
-            await ctx.send(f"💡 **{theme.title()} Tip:** {tip}")
-            # ✅ Delete the original command message
+        normalized_themes = {self.normalize_theme(k): k for k in self.tips.keys()}
+
+        if theme:
+            key = self.normalize_theme(theme)
+            if key in normalized_themes:
+                real_theme = normalized_themes[key]
+                tip = random.choice(self.tips[real_theme])
+                emoji = self.theme_emojis.get(real_theme, "💡")
+                await ctx.send(f"{emoji} **{real_theme.title()} Tip:** {tip}")
+                return
+
+        random_theme = random.choice(list(self.tips.keys()))
+        tip = random.choice(self.tips[random_theme])
+        emoji = self.theme_emojis.get(random_theme, "💡")
+        await ctx.send(f"{emoji} **{random_theme.title()} Tip:** {tip}")
+
+    @tasks.loop(hours=24)
+    async def daily_tip_task(self):
+        # Wait until 10 AM PST before sending
+        now = datetime.now(pytz.timezone("US/Pacific"))
+        target = now.replace(hour=10, minute=0, second=0, microsecond=0)
+        if now > target:
+            target += timedelta(days=1)
+        wait_time = (target - now).total_seconds()
+        print(f"[BuildTips] Waiting {wait_time / 60:.2f} minutes to post daily tip.")
+        await asyncio.sleep(wait_time)
+
+        channel = self.bot.get_channel(self.daily_tip_channel_id)
+        if not channel:
+            print(f"⚠️ Could not find daily tip channel with ID {self.daily_tip_channel_id}")
+            return
+
+        theme = random.choice(list(self.tips.keys()))
+        tip = random.choice(self.tips[theme])
+        emoji = self.theme_emojis.get(theme, "💡")
+
+        await channel.send(f"{emoji} **Dad’s {theme.title()} Tip of the Day:**\n> {tip}")
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        if not self.daily_tip_task.is_running():
+            self.daily_tip_task.start()
 
 
 async def setup(bot):
