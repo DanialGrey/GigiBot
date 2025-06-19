@@ -13,21 +13,21 @@ DATA_FILE = "data/ranks_data.json"
 
 # Define XP thresholds and roles (level index: (XP needed, role name))
 LEVELS = [
-    (0, "Newbie Builder"),
+    (0, "Workshop Intern"),
     (150, "Junior Engineer"),
-    (350, "Craftsman"),
-    (600, "Cozy Crafter"),
-    (900, "Assembly Apprentice"),
-    (1300, "Factory Foreman"),
-    (1800, "Production Prodigy"),
-    (2400, "Automation Ace"),
-    (3100, "Master Machinist"),
-    (3900, "Industrial Innovator"),
-    (4800, "Engineer Extraordinaire"),
-    (5800, "Logistics Legend"),
-    (6900, "Build Baroness"),
-    (8100, "Conveyor Commander"),
-    (9400, "Overclocking Overlord"),
+    (350, "Cozy Crafter"),
+    (600, "Resource Wrangler"),
+    (900, "Factory Foreman"),
+    (1300, "Scrap Specialist"),
+    (1800, "Blueprint Buff"),
+    (2400, "Mechanic Maestro"),
+    (3100, "Automation Alchemist"),
+    (3900, "Build Banshee"),
+    (4800, "Loot Goblin"),
+    (5800, "Mythic Module Master"),
+    (6900, "Architect of Efficiency"),
+    (8100, "Dadcore Overlord"),
+    (9400, "Eternal Fabricator"),
 ]
 
 class RankCog(commands.Cog):

@@ -45,13 +45,6 @@ class ReactionRoles(commands.Cog):
             await ctx.send(f"⚠️ This command can only be used in #{allowed_channel_name}.", delete_after=5)
             return
 
-        # ✅ Delete the original command message
-        try:
-            await ctx.message.delete()
-        except discord.Forbidden:
-            print("⚠️ Missing permission to delete messages.")
-        except Exception as e:
-            print(f"⚠️ Failed to delete command message: {e}")
 
         print("[ReactionRoles] Command invoked.")
         tokens = emoji_role_pairs.split()
@@ -83,6 +76,14 @@ class ReactionRoles(commands.Cog):
                 await ctx.send(f"❌ Role '{role_name}' not found.", delete_after=10)
                 return
             emoji_role_map[emoji] = role.id
+
+            # ✅ Delete the original command message
+            try:
+                await ctx.message.delete()
+            except discord.Forbidden:
+                print("⚠️ Missing permission to delete messages.")
+            except Exception as e:
+                print(f"⚠️ Failed to delete command message: {e}")
 
         # 📩 Send message in the same channel the command was run
         description_lines = [f"{emoji} : {ctx.guild.get_role(role_id).name}" for emoji, role_id in

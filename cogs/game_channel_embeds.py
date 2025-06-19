@@ -4,6 +4,7 @@ from discord.ext import commands
 class GameChannelEmbeds(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        print("[ChannelEmbed] Cog loaded.")
 
     async def send_game_embed(self, ctx, title, description, thumb_url=None):
         await ctx.message.delete()
