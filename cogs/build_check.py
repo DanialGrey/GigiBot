@@ -2,20 +2,22 @@ import discord
 from discord.ext import commands
 import asyncio
 import random
+import os
 
 class BuildCheck(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    print("[BuildCheck] Cog loaded.")
+        print("[BuildCheck] Cog loaded.")
 
     @commands.command(name="buildcheck")
+    @commands.cooldown(1, 60, commands.BucketType.user)  # ✅ Cooldown: 1 use per minute per user
     async def build_check(self, ctx, *, description: str = None):
         """Submit a build screenshot and receive a quirky GigiBot rating."""
 
-        # ✅ Restrict to #share-your-builds channel only
-        if ctx.channel.name != "share-your-builds":
-            await ctx.send(f"🚫 This command can only be used in the **#share-your-builds** channel.")
+        # ✅ Restrict to a specific channel by ID
+        allowed_channel_id = int(os.getenv("SHARE_YOUR_BUILDS_CHANNEL_ID"))  # Set this in your .env
+        if ctx.channel.id != allowed_channel_id:
+            await ctx.send("🚫 This command can only be used in the **#share-your-builds** channel.")
             return
 
         # ✅ Delete the original command message
@@ -26,10 +28,11 @@ class BuildCheck(commands.Cog):
         except Exception as e:
             print(f"⚠️ Error deleting command message: {e}")
 
-        # ✅ Send the image prompt and store the prompt message
+        # ✅ Prompt for image
         try:
             prompt_msg = await ctx.send(
-                f"🛠️ Alright {ctx.author.mention}, send me a **screenshot** of your build in the next **60 seconds**!")
+                f"🛠️ Alright {ctx.author.mention}, send me a **screenshot** of your build in the next **60 seconds**!"
+            )
         except Exception as e:
             print(f"⚠️ Could not send prompt message: {e}")
             return
@@ -41,7 +44,12 @@ class BuildCheck(commands.Cog):
             message = await self.bot.wait_for('message', timeout=60.0, check=check)
             attachment = message.attachments[0]
 
-            # Generate ratings
+            # ✅ Image type validation BEFORE proceeding
+            if not attachment.content_type or not attachment.content_type.startswith("image/"):
+                await ctx.send("🚫 That's not an image. Try again with a screenshot next time!")
+                return
+
+            # ✅ Generate ratings
             efficiency = random.randint(60, 99)
             dad_approval = random.randint(90, 120)
 
@@ -81,14 +89,14 @@ class BuildCheck(commands.Cog):
             embed = discord.Embed(
                 title="📊 Build Evaluation Complete!",
                 description=rating_text,
-                color=discord.Color.green()
+                color=discord.Color.from_str("#f57ef3")  # ✅ On-brand pink
             )
             embed.set_image(url=attachment.url)
             embed.set_footer(text="All ratings are certified 100% subjective.")
 
             await ctx.send(embed=embed)
 
-            # ✅ Delete the prompt and user's image message
+            # ✅ Clean up messages after confirmation it's an image
             try:
                 await prompt_msg.delete()
                 await message.delete()
@@ -97,18 +105,14 @@ class BuildCheck(commands.Cog):
             except Exception as e:
                 print(f"⚠️ Failed to delete messages: {e}")
 
-            if not attachment.content_type.startswith("image/"):
-                await ctx.send("🚫 That's not an image. Try again with a screenshot next time!")
-                return
-
         except asyncio.TimeoutError:
             try:
                 await prompt_msg.delete()
             except Exception:
                 pass
             await ctx.send(
-                "⌛ Timed out! You didn’t upload an image in time. Try `!buildcheck` again when you're ready.")
-
+                "⌛ Timed out! You didn’t upload an image in time. Try `!buildcheck` again when you're ready."
+            )
 
 async def setup(bot):
     await bot.add_cog(BuildCheck(bot))
