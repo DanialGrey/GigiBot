@@ -33,7 +33,7 @@ class StreamNotify(commands.Cog):
     async def check_streams(self):
         await self.bot.wait_until_ready()
 
-        announce_channel_name = self.bot.config.get("ANNOUNCEMENT_CHANNEL", "announcements")
+        announce_channel_name = ANNOUNCE_CHANNEL_NAME or "announcements"
         announce_channel = discord.utils.get(self.bot.get_all_channels(), name=announce_channel_name)
         if not announce_channel:
             logging.warning("[StreamNotify] Announcement channel not found.")
